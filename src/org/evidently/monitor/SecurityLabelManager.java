@@ -234,6 +234,10 @@ public class SecurityLabelManager {
 		
 		// update the taint label
 		actual.lbl = effectiveLabel;
+		{
+			System.out.println(String.format("\t[PreFlow] From=%s,To=%s", effectiveLabel.toString(), formal.toString()));
+		}
+		
 		
 		// OK, now check this in relation to the formal parameters 
 		if(Label.isValidDenningFlow(actual.lbl, formal)){
@@ -247,6 +251,9 @@ public class SecurityLabelManager {
 			return new CheckResult(actual.lbl, formal);
 		}
 		
+		{
+			System.out.println(String.format("\t[PostFlow] Final Label=%s", actual.lbl.toString()));
+		}
 		
 		
 		return CheckResult.instanceOk();

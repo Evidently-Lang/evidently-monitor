@@ -28,22 +28,45 @@ public class Label {
 		return String.format(format, String.join(",", sinks), String.join(",", sources));
 	}
 	
+	public static void noAny(Set<String> s)
+	{
+		s.remove("ANY");
+	}
 	
 	public static boolean isValidDenningFlow(Label from, Label to)
 	{
+		noAny(from.sources);
+		noAny(to.sources);
+		
+		noAny(to.sinks);
+		noAny(from.sinks);
+
 		// sinks must be NO MORE places 
 		// that is, to.sinks must subset 
-		return from.sinks.containsAll(to.sinks) && 
+		return (from.sinks.containsAll(to.sinks) || to.sinks.size()==0) && 
 		// sources must be NO LESS places
-				to.sources.containsAll(from.sources);
+				(
+						to.sources.containsAll(from.sources)
+						||
+						to.sources.size()==0
+				);
 		
 	}
-
+	
+	// fix merge process. don't merge if the other one is an ANY.
 	public static void mergeSource(Label effectiveLabel, Label l) {
+		
+		if(l.sources.contains("ANY")){ return; }
+		if(effectiveLabel.sources.contains("ANY")){ return; }
+		
 		effectiveLabel.sources.addAll(l.sources);
 	}
 
 	public static void mergeSinks(Label effectiveLabel, Label l) {
+		
+		if(l.sinks.contains("ANY")){ return; }
+		if(effectiveLabel.sinks.contains("ANY")){ return; }
+		
 		effectiveLabel.sinks.clear();
 		effectiveLabel.sinks.addAll(l.sinks);
 	}
