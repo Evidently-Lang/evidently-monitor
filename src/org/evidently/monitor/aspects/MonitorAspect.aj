@@ -61,7 +61,18 @@ aspect MonitorAspect {
 
 		}
 	
-	    pointcut invoke(): call(* *(..)) && !within(org.evidently.monitor.CheckResult) &&  !within(org.evidently.monitor.Label) && !cflow(call(* org.evidently.monitor.SecurityLabelManager.register(..))) && !cflow(call(* MonitorAspect.checkMethodCall(..))) && !within(MonitorAspect) && !within(org.evidently.monitor.SecurityLabelManager) && !within(edu.columbia.*) && !within(org.evidently.annotations.*);
+	    pointcut invoke(): call(* *(..)) 
+	    && !within(org.evidently.examples.translated.PasswordChecker2) 
+	    &&!within(org.evidently.monitor.CheckResult) 
+	    &&  !within(org.evidently.monitor.Label) 
+	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.register(..)))
+	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.inCache(..)))	    
+	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.getTaint(..))) 	    
+	    && !cflow(call(* MonitorAspect.checkMethodCall(..))) 
+	    && !within(MonitorAspect) 
+	    && !within(org.evidently.monitor.SecurityLabelManager) 
+	    && !within(edu.columbia.*) 
+	    && !within(org.evidently.annotations.*);
 	
 	    before(): invoke()  {
 	    	checkMethodCall(thisJoinPoint);
@@ -71,9 +82,10 @@ aspect MonitorAspect {
 	    	List<Taint<Label>> labels = new ArrayList<Taint<Label>>();
 	        
 	    	for(Object arg : args){
+	    		
 	    		if(SecurityLabelManager.getInstance().inCache(arg)){
 	    			
-	    			Taint<Label> t = MultiTainter.getTaint(arg);
+	    			Taint<Label> t = SecurityLabelManager.getInstance().getTaint(arg);
 	    			
 	    			labels.add(t);
 	    			

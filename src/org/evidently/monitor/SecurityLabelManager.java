@@ -34,13 +34,42 @@ public class SecurityLabelManager {
 	}
 
 	public boolean inCache(Object o) {
-		 Taint t = MultiTainter.getTaint(o);
+		 
+		Taint t = getTaint(o);		 
+		 
 		 if(t==null){
 			 return false;
 		 }
+		 
 		 return true;
 	}
 	
+	public Taint<Label> getTaint(Object o)
+	{
+		Taint<Label> t = MultiTainter.getTaint(o);
+		
+		if(t!=null){
+			return t;
+		}
+
+		// autoboxing
+		if(o instanceof Integer){
+			t = MultiTainter.getTaint(((Integer)o).intValue());
+		}else if(o instanceof Boolean){
+			t = MultiTainter.getTaint(((Boolean)o).booleanValue());			
+		}else if(o instanceof Float){
+			t = MultiTainter.getTaint(((Float)o).floatValue());			
+		}else if(o instanceof Double){
+			t = MultiTainter.getTaint(((Double)o).doubleValue());			
+		}else if(o instanceof Byte){
+			t = MultiTainter.getTaint(((Byte)o).byteValue());			
+		}else if(o instanceof Long){
+			t = MultiTainter.getTaint(((Long)o).longValue());			
+		}
+		
+		
+		return t;
+	}
 	
 	public void registerIfNotRegistered(Object o, Label l) {
 		
