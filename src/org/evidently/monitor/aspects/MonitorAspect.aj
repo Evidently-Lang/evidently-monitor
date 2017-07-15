@@ -49,18 +49,19 @@ aspect MonitorAspect {
 	        List<Label> formalLabels = formalParametersToLabels(sig);
 	        List<Taint<Label>> actualTaints = argsToTaints(thisJoinPoint.getArgs());
 	        
-	        
+
+	        // note this will update labels as needed. 
 	        CheckResult result = SecurityLabelManager.checkMethodCall(formalLabels, actualTaints);
 	        
-//	        if(result.ok()){
-//	        	log(thisJoinPoint, result.toString());
-//	        }else{
-//	        	reportViolation(thisJoinPoint, result.toString());
-//	        }
+	        if(result.ok()){
+	        	log(thisJoinPoint, "Flow OK");
+	        }else{
+	        	reportViolation(thisJoinPoint, result.getMessage());
+	        }
 
 		}
 	
-	    pointcut invoke(): call(* *(..)) && !within(org.evidently.monitor.Label) && !cflow(call(* org.evidently.monitor.SecurityLabelManager.register(..))) && !cflow(call(* MonitorAspect.checkMethodCall(..))) && !within(MonitorAspect) && !within(org.evidently.monitor.SecurityLabelManager) && !within(edu.columbia.*) && !within(org.evidently.annotations.*);
+	    pointcut invoke(): call(* *(..)) && !within(org.evidently.monitor.CheckResult) &&  !within(org.evidently.monitor.Label) && !cflow(call(* org.evidently.monitor.SecurityLabelManager.register(..))) && !cflow(call(* MonitorAspect.checkMethodCall(..))) && !within(MonitorAspect) && !within(org.evidently.monitor.SecurityLabelManager) && !within(edu.columbia.*) && !within(org.evidently.annotations.*);
 	
 	    before(): invoke()  {
 	    	checkMethodCall(thisJoinPoint);

@@ -3,9 +3,11 @@ package org.evidently.monitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
 
 public class SecurityLabelManager {
 			
@@ -192,9 +194,81 @@ public class SecurityLabelManager {
 		return MultiTainter.taintedBooleanArray(o, l);
 
 	}
+	
+	private static CheckResult checkPair(Label formal, Taint<Label> actual){
+		
+		// our check takes place in two forms 
+		
+		// first, we check that everything in DEPS is a valid step in a 
+		// information flow lattice. 
+		
+		// while we do this, we compute the current EFFECTIVE label
+		Label effectiveLabel = actual.getLabel();
+		
+		if(actual.getDependencies()!=null && actual.getDependencies().getFirst()!=null){
+			
+			for(Node<Label> n = actual.getDependencies().getFirst(); n.next!=null; n=n.next){
+				
+				Label l = n.entry;
+				
+				if(effectiveLabel==null){
+					effectiveLabel = l;
+					continue;
+				}
+				
+				if(Label.isValidDenningFlow(effectiveLabel, l))
+				{
+					// merge this two labels. 
+					Label.mergeSinks(effectiveLabel, l);
+					Label.mergeSource(effectiveLabel, l);					
+				}
+				else if(false){
+					
+					//TODO label upgrading
+				
+				} else{
+					return new CheckResult(effectiveLabel, l);
+				}
+			}			
+		}		
+		
+		// update the taint label
+		actual.lbl = effectiveLabel;
+		
+		// OK, now check this in relation to the formal parameters 
+		if(Label.isValidDenningFlow(actual.lbl, formal)){
+			// merge
+			Label.mergeSinks(actual.lbl, formal);
+			Label.mergeSource(actual.lbl, formal);					
+
+		}else if(false){
+			// upgrading
+		}else{
+			return new CheckResult(actual.lbl, formal);
+		}
+		
+		
+		
+		return CheckResult.instanceOk();
+	}
 
 	public static CheckResult checkMethodCall(List<Label> formalLabels, List<Taint<Label>> actualTaints) {
-		return null;
+		
+		// check each pair.
+		if(formalLabels.size() != actualTaints.size()){
+			System.out.println("[MONITOR] System Integrity Violation. Mismatch in Formals / Actuals Arity");
+			System.exit(1);
+		}
+		
+		for(int i=0; i<formalLabels.size(); i++){
+			CheckResult r = checkPair(formalLabels.get(i), actualTaints.get(i));
+			
+			if(!r.ok()){
+				return r;
+			}
+		}
+		
+		return CheckResult.instanceOk();
 	}
 
 }
