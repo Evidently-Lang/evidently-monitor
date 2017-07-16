@@ -11,6 +11,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 public class NumberGuesser {
 
 	private int realNumber = 2600;
+	public boolean admin   = false;
 
 	public NumberGuesser() {
 		realNumber = SecurityLabelManager.register(realNumber, new Label(new String[] { "DB" }, new String[] { "DB" }));
@@ -27,7 +28,9 @@ public class NumberGuesser {
 		}
 
 		writeLog(guess);       // OK
-		writeLog(realNumber);  // not OK
+		if(admin){
+			writeLog(realNumber);  // not OK
+		}
 
 		return isOK;
 	}
@@ -39,24 +42,36 @@ public class NumberGuesser {
 	public void writeLog(@Sink("LOG") String msg) {
 		System.out.println(msg);
 	}
+	
+	public @Sink({ "DB", "LOG" }) @Source("UI") static int getPasswordGuess()
+	{
+		return 0;
+	}
 
 	public static void main(String args[]) {
 
-		int guess = 2600;
-
-		guess = SecurityLabelManager.register(guess, new Label(new String[] { "DB", "LOG" }, new String[] { "UI" }));
-				
-		NumberGuesser checker = new NumberGuesser();
-
-		SecurityLabelManager.register(checker, new Label(new String[] { "LITERAL" }, new String[] { "LITERAL" }));
-
-		boolean isOK = checker.checkPassword(guess);
+//		int guess = 2600;
+//
+//		guess = SecurityLabelManager.register(guess, new Label(new String[] { "DB", "LOG" }, new String[] { "UI" }));
+//				
+//		NumberGuesser checker = new NumberGuesser();
+//
+//		SecurityLabelManager.register(checker, new Label(new String[] { "LITERAL" }, new String[] { "LITERAL" }));
+//
+//		boolean isOK = checker.checkPassword(guess);
+//		
+//		if (isOK) {
+//			checker.writeLog("Login OK");
+//		} else {
+//			checker.writeLog("Invalid Username or Password");
+//		}
 		
-		if (isOK) {
-			checker.writeLog("Login OK");
-		} else {
-			checker.writeLog("Invalid Username or Password");
-		}
+		int g = getPasswordGuess();
+		
+		Taint t = MultiTainter.getTaint(g);
+		
+		assert(t!=null);
+		
 	}
 
 }

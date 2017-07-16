@@ -1,0 +1,8 @@
+
+
+model Guess {
+
+	flowspecs adminMode:boolean = {
+		within(NumberGuesser) && field("admin")
+	}
+}

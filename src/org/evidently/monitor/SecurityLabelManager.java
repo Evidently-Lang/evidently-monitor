@@ -307,4 +307,15 @@ public class SecurityLabelManager {
 		return CheckResult.instanceOk();
 	}
 
+	public static CheckResult checkMethodReturn(Label formalLabel, Taint<Label> actualTaint) {
+
+		CheckResult r = checkPair(formalLabel, actualTaint);
+		
+		if(!r.ok()){
+			return r;
+		}
+		
+		return CheckResult.instanceOk();
+	}
+
 }
