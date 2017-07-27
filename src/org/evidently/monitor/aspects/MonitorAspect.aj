@@ -1,27 +1,63 @@
 package org.evidently.monitor.aspects;
 
 import java.lang.annotation.Annotation;
+import java.lang.annotation.AnnotationFormatError;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.evidently.annotations.ReleasePolicyFor;
 import org.evidently.annotations.Sink;
 import org.evidently.annotations.Source;
 import org.evidently.monitor.CheckResult;
 import org.evidently.monitor.Label;
 import org.evidently.monitor.SecurityLabelManager;
+import org.evidently.monitor.TaintStoreMergeTracker;
+import org.reflections.Reflections;
+import org.reflections.scanners.MethodAnnotationsScanner;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.TypeAnnotationsScanner;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.Configuration;;
 
 aspect MonitorAspect {
 
+	
 	enum MonitorMode {
 		WARN, ENFORCE
 	}
 
+	static {
+		//Configuration.derivedTaintListener = new TaintStoreMergeTracker();
+		//DON'T REMOVE THIS -- it's needed to prime the class loader cache.
+		Reflections reflections = new Reflections(new ConfigurationBuilder()
+			     .setUrls(ClasspathHelper.forPackage("org.evidently.policy"))
+			     .setScanners(new SubTypesScanner(), 
+			                  new TypeAnnotationsScanner(),
+			                  new MethodAnnotationsScanner()
+			    		 ));
+				
+		Set<Method> methods = reflections.getMethodsAnnotatedWith(ReleasePolicyFor.class);
+		
+		for(Method mm : methods){
+			Annotation[][] as = mm.getParameterAnnotations();
+			
+			for(int i=0; i< as.length; i++){
+				for(int j=0; j<as[i].length; j++){
+					System.out.println(as[i][j]);
+				}
+			}
+		}
+	
+	}
+	
 	private MonitorMode enforcementMode = MonitorMode.WARN;
 
 	/**
@@ -66,16 +102,20 @@ aspect MonitorAspect {
 		MethodSignature sig = (MethodSignature) thisJoinPoint.getSignature();
 
 		// what it should be
-		Label formalLabel = returnTypeToLabel(sig);
-		Taint<Label> actualTaint = returnValueToTaints(returnValue);
-
-		// note this will update labels as needed.
-		CheckResult result = SecurityLabelManager.checkMethodReturn(formalLabel, actualTaint);
-
-		if (result.ok()) {
-			log(thisJoinPoint, "Flow OK");
-		} else {
-			reportViolation(thisJoinPoint, result.getMessage());
+		try {
+			Label formalLabel = returnTypeToLabel(sig);
+			Taint<Label> actualTaint = returnValueToTaints(returnValue);
+	
+			// note this will update labels as needed.
+			CheckResult result = SecurityLabelManager.checkMethodReturn(formalLabel, actualTaint);
+	
+			if (result.ok()) {
+				log(thisJoinPoint, "Flow OK");
+			} else {
+				reportViolation(thisJoinPoint, result.getMessage());
+			}
+		}catch(AnnotationFormatError e){
+			e.printStackTrace();
 		}
 
 	}
@@ -83,22 +123,33 @@ aspect MonitorAspect {
 	pointcut invoke(): call(* *(..)) 
 	    && !within(org.evidently.examples.translated.PasswordChecker2) 
 	    &&!within(org.evidently.monitor.CheckResult) 
-	    &&  !within(org.evidently.monitor.Label) 
+	    &&  !within(org.evidently.monitor.Label)
 	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.register(..)))
 	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.inCache(..)))	    
 	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.getTaint(..))) 	    
 	    && !cflow(call(* MonitorAspect.checkMethodCall(..))) 
 	    && !within(MonitorAspect) 
-	    && !within(org.evidently.monitor.SecurityLabelManager) 
+	    && !within(org.evidently.monitor.SecurityLabelManager)
+	    && !within(org.evidently.examples.translated.Crash)
+	    && !within(org.reflections.*) 
+	    && !within(org.reflections.util.ClasspathHelper)
+	    && !cflow(call(* org.reflections.util.ClasspathHelper.forPackage(..)))
 	    && !within(edu.columbia.*) 
-	    && !within(org.evidently.annotations.*);
+	    && !within(org.evidently.annotations.*)
+	    && !within(org.evidently.flowpoints.*)
+	    && !within(org.evidently.monitor.Pair);
+
 
 	before(): invoke()  {
-		checkMethodCall(thisJoinPoint);
+		//if(AspectConfig.isReady()){
+			checkMethodCall(thisJoinPoint);
+		//}
 	}
 
 	after() returning(Object r) : invoke(){
-		checkMethodReturn(thisJoinPoint, r);
+		//if(AspectConfig.isReady()){
+			checkMethodReturn(thisJoinPoint, r);
+		//}
 	}
 
 	private Taint<Label> returnValueToTaints(Object o) {
@@ -129,9 +180,9 @@ aspect MonitorAspect {
 	}
 
 	private Label returnTypeToLabel(MethodSignature sig) {
-		// sig.getMethod().getAnnotatedReturnType()
+
 		Method m = sig.getMethod();
-		Annotation[] pa = m.getAnnotatedReturnType().getAnnotations();
+		Annotation[] pa = m.getAnnotations();
 
 		String[] sinks = SecurityLabelManager.defaultSinks();
 		String[] sources = SecurityLabelManager.defaultSources();

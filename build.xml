@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<project name="EvidentlyMonitor" default="CreateJar">
+  <target name="CreateJar" description="Create Jar file">
+        <jar jarfile="target/evidently-monitor.jar" basedir="bin" includes="**/*.class"  />
+  </target>
+</project>  

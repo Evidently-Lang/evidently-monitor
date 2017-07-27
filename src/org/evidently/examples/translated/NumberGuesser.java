@@ -1,5 +1,19 @@
 package org.evidently.examples.translated;
 
+import org.evidently.policy.PolicyElementType;
+import org.reflections.Reflections;
+import org.reflections.scanners.MethodAnnotationsScanner;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.TypeAnnotationsScanner;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.Set;
+
+import org.evidently.annotation.Policy;
+import org.evidently.annotations.ReleasePolicyFor;
 import org.evidently.annotations.Sink;
 import org.evidently.annotations.Source;
 import org.evidently.monitor.Label;
@@ -14,7 +28,24 @@ public class NumberGuesser {
 	public boolean admin   = false;
 
 	public NumberGuesser() {
-		realNumber = SecurityLabelManager.register(realNumber, new Label(new String[] { "DB" }, new String[] { "DB" }));
+		realNumber =  SecurityLabelManager.register(
+				realNumber, 
+				new Label(
+						new String[] { "DB" },        // sinks 
+						new String[] { "DB" },         // sources
+						PolicyElementType.FLOWPOINT,  // the policy element this matches.
+						"Guess.guess"                  // the NAME in the policy it matches. 
+
+				));
+
+		admin =  SecurityLabelManager.register(
+				admin, 
+				new Label(
+						new String[] { "DB" },        // sinks 
+						new String[] { "DB" },        // sources
+						PolicyElementType.FLOWPOINT,  // the policy element this matches.
+						"Guess.adminMode")            // the NAME in the policy it matches. 
+				);
 
 	}
 
@@ -28,6 +59,9 @@ public class NumberGuesser {
 		}
 
 		writeLog(guess);       // OK
+		
+		// HERE we need to check this.
+		
 		if(admin){
 			writeLog(realNumber);  // not OK
 		}
@@ -43,35 +77,42 @@ public class NumberGuesser {
 		System.out.println(msg);
 	}
 	
-	public @Sink({ "DB", "LOG" }) @Source("UI") static int getPasswordGuess()
+	@Sink({"DB"}) @Source({ "DB" })
+	public static int getPasswordGuess()
 	{
 		return 0;
 	}
 
 	public static void main(String args[]) {
 
-//		int guess = 2600;
-//
-//		guess = SecurityLabelManager.register(guess, new Label(new String[] { "DB", "LOG" }, new String[] { "UI" }));
-//				
-//		NumberGuesser checker = new NumberGuesser();
-//
-//		SecurityLabelManager.register(checker, new Label(new String[] { "LITERAL" }, new String[] { "LITERAL" }));
-//
-//		boolean isOK = checker.checkPassword(guess);
-//		
-//		if (isOK) {
-//			checker.writeLog("Login OK");
-//		} else {
-//			checker.writeLog("Invalid Username or Password");
-//		}
+		int guess = 2600;
+	
+		guess = SecurityLabelManager.register(guess, new Label(new String[] { "DB", "LOG" }, new String[] { "UI" }));
+						
+		NumberGuesser checker = new NumberGuesser();
+
+		SecurityLabelManager.register(checker, new Label(new String[] { "LITERAL" }, new String[] { "LITERAL" }));
+
+		boolean isOK = checker.checkPassword(guess);
 		
-		int g = getPasswordGuess();
+		if (isOK) {
+			checker.writeLog("Login OK");
+		} else {
+			checker.writeLog("Invalid Username or Password");
+		}
 		
-		Taint t = MultiTainter.getTaint(g);
 		
-		assert(t!=null);
+
+	//	assert( guess == 2600);
 		
+		//NumberGuesser checker = new NumberGuesser();
+		
+		//SecurityLabelManager.register(checker, new Label(new String[] { "LITERAL" }, new String[] { "LITERAL" }));
+		
+		///int g = getPasswordGuess();
+		
+		//checker.writeLog(g);
 	}
+		
 
 }

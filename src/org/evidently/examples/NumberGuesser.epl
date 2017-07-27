@@ -5,4 +5,23 @@ model Guess {
 	flowspecs adminMode:boolean = {
 		within(NumberGuesser) && field("admin")
 	}
+	
+	flowspecs guess:int = {
+		within(NumberGuesser) && field("realGuess")
+	}
+}
+
+policy ReleaseGuessesToAdmin {
+
+	use model Guess;
+	
+	
+	release(Guess.guess, X->Y){
+		when {		
+			adminMode == true
+		}
+	}
+
+
+
 }
