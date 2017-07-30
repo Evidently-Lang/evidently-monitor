@@ -55,7 +55,8 @@ public class SecurityLabelManager {
 	public static String[] defaultSources(){
 		return new String[]{"ANY"};
 	}
-
+	
+	
 	public boolean inCache(Object o) {
 		 
 		Taint t = getTaint(o);		 
@@ -94,232 +95,12 @@ public class SecurityLabelManager {
 		return t;
 	}
 	
-	public void registerIfNotRegistered(Object o, Label l) {
-		
-		int x = 3;
-		
-		boolean b = inCache(x);
-		
-		if(inCache(o)) {
-			return;
-		}		
-		
-		//if()
-		
-	}
-	public static void register(Object o, Label l) {
-		if(getInstance().inCache(o)) {
-			return;
-		}	
-
-        MultiTainter.taintedObject(o, new Taint<Label>(l));
-        
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-	}
-
-	// primative types
-	public static short register(short o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedShort(o, l);
-	}
-	public static int register(int o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedInt(o, l);
-	}
-	
-	public static long register(long o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedLong(o, l);
-	}
-	
-	public static double register(double o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedDouble(o, l);
-
-	}
-	
-	public static float register(float o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedFloat(o, l);
-	}
-	
-	public static byte register(byte o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedByte(o, l);
-	}
-	
-	public static char register(char o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedChar(o, l);
-	}
-	
-	public static boolean register(boolean o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedBoolean(o, l);
-
-	}
-	
-	// array types
-	public static short[] register(short[] o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedShortArray(o, l);
-	}
-	public static int[] register(int[] o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedIntArray(o, l);
-	}
-	
-	public static long[] register(long[] o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedLongArray(o, l);
-	}
-	
-	public static double[] register(double[] o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedDoubleArray(o, l);
-
-	}
-	
-	public static float[] register(float[] o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedFloatArray(o, l);
-	}
-	
-	public static byte[] register(byte[] o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedByteArray(o, l);
-	}
-	
-	public static char[] register(char[] o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedCharArray(o, l);
-	}
-	
-	public static boolean[] register(boolean[] o, Label l) {
-		if(getInstance().inCache(o)) {
-			return o;
-		}	
-
-		if(l.isSpecial()){
-			l.updateContexts(o, context);
-		}
-
-		return MultiTainter.taintedBooleanArray(o, l);
-
-	}
 	
 	
 	/////////
 	// if the label is specified, we ONLY use the label IF it ISN'T in the cache already. 
 	// otherwise we just update the context value. 
-	public static void update(Object o, Label l) {
+	public static void update(Object o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return;
 		
@@ -343,7 +124,7 @@ public class SecurityLabelManager {
 	}
 
 
-	public static short update(short o, Label l) {
+	public static short update(short o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -369,7 +150,7 @@ public class SecurityLabelManager {
 	}
 
 
-	public static int update(int o, Label l) {
+	public static int update(int o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 
@@ -403,7 +184,7 @@ public class SecurityLabelManager {
 		return o;
 	}
 	
-	public static long update(long o, Label l) {
+	public static long update(long o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -428,7 +209,7 @@ public class SecurityLabelManager {
 		return o;
 	}
 
-	public static double update(double o, Label l) {
+	public static double update(double o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -455,7 +236,7 @@ public class SecurityLabelManager {
 	}
 
 
-	public static float update(float o, Label l) {
+	public static float update(float o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -482,7 +263,7 @@ public class SecurityLabelManager {
 	}
 
 	
-	public static byte update(byte o, Label l) {
+	public static byte update(byte o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -509,7 +290,7 @@ public class SecurityLabelManager {
 	}
 
 	
-	public static char update(char o, Label l) {
+	public static char update(char o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -536,7 +317,7 @@ public class SecurityLabelManager {
 	}
 
 	
-	public static boolean update(boolean o, Label l) {
+	public static boolean update(boolean o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -568,7 +349,7 @@ public class SecurityLabelManager {
 ////////
 	
 	
-	public static short[] update(short[] o, Label l) {
+	public static short[] update(short[] o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -595,7 +376,7 @@ public class SecurityLabelManager {
 	}
 
 
-	public static int[] update(int[] o, Label l) {
+	public static int[] update(int[] o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -621,7 +402,7 @@ public class SecurityLabelManager {
 		return o;
 	}
 	
-	public static long[] update(long[] o, Label l) {
+	public static long[] update(long[] o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -647,7 +428,7 @@ public class SecurityLabelManager {
 		return o;
 	}
 
-	public static double[] update(double[] o, Label l) {
+	public static double[] update(double[] o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -674,7 +455,7 @@ public class SecurityLabelManager {
 	}
 
 
-	public static float[] update(float[] o, Label l) {
+	public static float[] update(float[] o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -701,7 +482,7 @@ public class SecurityLabelManager {
 	}
 
 	
-	public static byte[] update(byte[] o, Label l) {
+	public static byte[] update(byte[] o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -728,7 +509,7 @@ public class SecurityLabelManager {
 	}
 
 	
-	public static char[] update(char[] o, Label l) {
+	public static char[] update(char[] o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		
@@ -755,7 +536,7 @@ public class SecurityLabelManager {
 	}
 
 	
-	public static boolean[] update(boolean[] o, Label l) {
+	public static boolean[] update(boolean[] o, Label l, Taint<Label> previousTaint) {
 		
 		if(AspectConfig.isReady()==false) return o;
 		

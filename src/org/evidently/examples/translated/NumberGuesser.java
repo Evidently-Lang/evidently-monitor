@@ -28,24 +28,24 @@ public class NumberGuesser {
 	public boolean admin   = false;
 
 	public NumberGuesser() {
-		realNumber =  SecurityLabelManager.register(
+		realNumber =  SecurityLabelManager.update(
 				realNumber, 
 				new Label(
 						new String[] { "DB" },        // sinks 
 						new String[] { "DB" },         // sources
 						PolicyElementType.FLOWPOINT,  // the policy element this matches.
-						"Guess.guess"                  // the NAME in the policy it matches. 
+						"Guess.guess"                 // the NAME in the policy it matches. 
 
-				));
+				), null);
 
-		admin =  SecurityLabelManager.register(
+		admin =  SecurityLabelManager.update(
 				admin, 
 				new Label(
 						new String[] { "DB" },        // sinks 
 						new String[] { "DB" },        // sources
 						PolicyElementType.FLOWPOINT,  // the policy element this matches.
-						"Guess.adminMode")            // the NAME in the policy it matches. 
-				);
+						"Guess.adminMode"),            // the NAME in the policy it matches. 
+				null);
 
 	}
 
@@ -87,11 +87,11 @@ public class NumberGuesser {
 
 		int guess = 2600;
 	
-		guess = SecurityLabelManager.register(guess, new Label(new String[] { "DB", "LOG" }, new String[] { "UI" }));
+		guess = SecurityLabelManager.update(guess, new Label(new String[] { "DB", "LOG" }, new String[] { "UI" }), null);
 						
 		NumberGuesser checker = new NumberGuesser();
 
-		SecurityLabelManager.register(checker, new Label(new String[] { "LITERAL" }, new String[] { "LITERAL" }));
+		SecurityLabelManager.update(checker, new Label(new String[] { "LITERAL" }, new String[] { "LITERAL" }), null);
 
 		boolean isOK = checker.checkPassword(guess);
 		

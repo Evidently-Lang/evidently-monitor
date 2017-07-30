@@ -29,36 +29,26 @@ import edu.columbia.cs.psl.phosphor.Configuration;;
 
 aspect MonitorAspect {
 
-	
-	enum MonitorMode {
-		WARN, ENFORCE
-	}
-
 	static {
-		//Configuration.derivedTaintListener = new TaintStoreMergeTracker();
-		//DON'T REMOVE THIS -- it's needed to prime the class loader cache.
-		Reflections reflections = new Reflections(new ConfigurationBuilder()
-			     .setUrls(ClasspathHelper.forPackage("org.evidently.policy"))
-			     .setScanners(new SubTypesScanner(), 
-			                  new TypeAnnotationsScanner(),
-			                  new MethodAnnotationsScanner()
-			    		 ));
-				
+		// Configuration.derivedTaintListener = new TaintStoreMergeTracker();
+		// DON'T REMOVE THIS -- it's needed to prime the class loader cache.
+		Reflections reflections = new Reflections(
+				new ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("org.evidently.policy")).setScanners(
+						new SubTypesScanner(), new TypeAnnotationsScanner(), new MethodAnnotationsScanner()));
+
 		Set<Method> methods = reflections.getMethodsAnnotatedWith(ReleasePolicyFor.class);
-		
-		for(Method mm : methods){
+
+		for (Method mm : methods) {
 			Annotation[][] as = mm.getParameterAnnotations();
-			
-			for(int i=0; i< as.length; i++){
-				for(int j=0; j<as[i].length; j++){
+
+			for (int i = 0; i < as.length; i++) {
+				for (int j = 0; j < as[i].length; j++) {
 					System.out.println(as[i][j]);
 				}
 			}
 		}
-	
+
 	}
-	
-	private MonitorMode enforcementMode = MonitorMode.WARN;
 
 	/**
 	 * This joinpoint performs several functions related to method calls.
@@ -76,7 +66,7 @@ aspect MonitorAspect {
 	 */
 
 	public void checkMethodCall(JoinPoint thisJoinPoint) {
-		traceCall(thisJoinPoint); // log that we've been here.
+		AspectConfig.traceCall(thisJoinPoint); // log that we've been here.
 
 		MethodSignature sig = (MethodSignature) thisJoinPoint.getSignature();
 
@@ -88,15 +78,15 @@ aspect MonitorAspect {
 		CheckResult result = SecurityLabelManager.checkMethodCall(formalLabels, actualTaints);
 
 		if (result.ok()) {
-			log(thisJoinPoint, "Flow OK");
+			AspectConfig.log(thisJoinPoint, "Flow OK");
 		} else {
-			reportViolation(thisJoinPoint, result.getMessage());
+			AspectConfig.reportViolation(thisJoinPoint, result.getMessage());
 		}
 
 	}
 
 	public void checkMethodReturn(JoinPoint thisJoinPoint, Object returnValue) {
-		traceReturn(thisJoinPoint);
+		AspectConfig.traceReturn(thisJoinPoint);
 
 		// log that we've been here.
 		MethodSignature sig = (MethodSignature) thisJoinPoint.getSignature();
@@ -105,16 +95,16 @@ aspect MonitorAspect {
 		try {
 			Label formalLabel = returnTypeToLabel(sig);
 			Taint<Label> actualTaint = returnValueToTaints(returnValue);
-	
+
 			// note this will update labels as needed.
 			CheckResult result = SecurityLabelManager.checkMethodReturn(formalLabel, actualTaint);
-	
+
 			if (result.ok()) {
-				log(thisJoinPoint, "Flow OK");
+				AspectConfig.log(thisJoinPoint, "Flow OK");
 			} else {
-				reportViolation(thisJoinPoint, result.getMessage());
+				AspectConfig.reportViolation(thisJoinPoint, result.getMessage());
 			}
-		}catch(AnnotationFormatError e){
+		} catch (AnnotationFormatError e) {
 			e.printStackTrace();
 		}
 
@@ -125,8 +115,11 @@ aspect MonitorAspect {
 	    &&!within(org.evidently.monitor.CheckResult) 
 	    &&  !within(org.evidently.monitor.Label)
 	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.register(..)))
+	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.update(..)))
 	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.inCache(..)))	    
-	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.getTaint(..))) 	    
+	    && !cflow(call(* org.evidently.monitor.SecurityLabelManager.getTaint(..)))
+	    && !(within(org.evidently.monitor.aspects.AspectConfig)) 	    
+	    
 	    && !cflow(call(* MonitorAspect.checkMethodCall(..))) 
 	    && !within(MonitorAspect) 
 	    && !within(org.evidently.monitor.SecurityLabelManager)
@@ -139,17 +132,16 @@ aspect MonitorAspect {
 	    && !within(org.evidently.flowpoints.*)
 	    && !within(org.evidently.monitor.Pair);
 
-
 	before(): invoke()  {
-		//if(AspectConfig.isReady()){
-			checkMethodCall(thisJoinPoint);
-		//}
+		// if(AspectConfig.isReady()){
+		checkMethodCall(thisJoinPoint);
+		// }
 	}
 
 	after() returning(Object r) : invoke(){
-		//if(AspectConfig.isReady()){
-			checkMethodReturn(thisJoinPoint, r);
-		//}
+		// if(AspectConfig.isReady()){
+		checkMethodReturn(thisJoinPoint, r);
+		// }
 	}
 
 	private Taint<Label> returnValueToTaints(Object o) {
@@ -231,29 +223,4 @@ aspect MonitorAspect {
 		return labels;
 	}
 
-	private void reportViolation(JoinPoint jp, String message) {
-
-		System.out.println(
-				String.format("[Evidently] [IFC VIOLATION] \n\tDesc=%s\n\tMessage=%s", jp.toLongString(), message));
-
-		if (enforcementMode == MonitorMode.ENFORCE) {
-			// exit!
-			System.exit(-1);
-		}
-	}
-
-	private void log(JoinPoint jp, String message) {
-
-		System.out.println(String.format("[Evidently] [TRACE] \n\tDesc=%s\n\tMessage=%s", jp.toLongString(), message));
-	}
-
-	private void traceReturn(JoinPoint jp) {
-
-		System.out.println(String.format("[Evidently] [TRACE] [RETURN] \n\tDesc=%s", jp.toLongString()));
-	}
-
-	private void traceCall(JoinPoint jp) {
-
-		System.out.println(String.format("[Evidently] [TRACE] [CALL]\n\tDesc=%s", jp.toLongString()));
-	}
 }
