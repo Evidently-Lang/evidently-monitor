@@ -145,8 +145,9 @@ aspect MonitorAspect {
 	}
 
 	private Taint<Label> returnValueToTaints(Object o) {
-		if (SecurityLabelManager.getInstance().inCache(o)) {
-			return SecurityLabelManager.getInstance().getTaint(o);
+		Taint<Label> t = SecurityLabelManager.getInstance().inCache(o);
+		if (t!=null) {
+			return t;
 		} else {
 			return new Taint<Label>(SecurityLabelManager.defaultLabel());
 		}
@@ -157,12 +158,10 @@ aspect MonitorAspect {
 
 		for (Object arg : args) {
 
-			if (SecurityLabelManager.getInstance().inCache(arg)) {
-
-				Taint<Label> t = SecurityLabelManager.getInstance().getTaint(arg);
-
+			Taint<Label> t = SecurityLabelManager.getInstance().inCache(arg);
+			
+			if (t!=null) {
 				labels.add(t);
-
 			} else {
 				labels.add(new Taint<Label>(SecurityLabelManager.defaultLabel()));
 			}
