@@ -15,6 +15,7 @@ import org.evidently.annotations.ReleaseParam;
 import org.evidently.annotations.ReleasePolicyFor;
 import org.evidently.annotations.Sink;
 import org.evidently.annotations.Source;
+import org.evidently.labels.defaults.LabelSet;
 import org.evidently.monitor.aspects.AspectConfig;
 import org.evidently.policy.PolicyElementType;
 import org.evidently.policy.numberguesser.PolicyReleaseGuessesToAdmin;
@@ -28,13 +29,25 @@ import org.reflections.util.ConfigurationBuilder;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
 
 public class SecurityLabelManager {
 
 	public static SecurityLabelManager instance;
 	private static HashMap<String, Pair<Object, Label>> context = new HashMap<String, Pair<Object, Label>>();
-
+	public LabelSet labelSet;
+	
+	
+	private SecurityLabelManager(){
+		try {
+			labelSet = (LabelSet)Class.forName("org.evidently.labels.PolicyLabelSet").newInstance();
+		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+			System.out.println("[Evidently] Unable to load policy labels. Using defaults...");			
+			labelSet = new LabelSet();
+		}
+	}
+	
 	public static SecurityLabelManager getInstance() {
 		if (instance == null) {
 			instance = new SecurityLabelManager();
@@ -48,11 +61,11 @@ public class SecurityLabelManager {
 	}
 
 	public static String[] defaultSinks() {
-		return new String[] { "ANY" };
+		return  SecurityLabelManager.getInstance().labelSet.sinks();
 	}
 
 	public static String[] defaultSources() {
-		return new String[] { "ANY" };
+		return new String[] {};
 	}
 
 	public Taint inCache(Object o) {
@@ -134,6 +147,30 @@ public class SecurityLabelManager {
 
 		return o;
 	}
+	
+	private static String getCaller(){
+		StackTraceElement e = null;
+		
+		for(StackTraceElement ele : Thread.currentThread().getStackTrace()){
+			if(ele.getClassName().startsWith("org.evidently")||
+					ele.getClassName().startsWith("edu.columbia") ||
+					ele.getClassName().startsWith("java.lang")
+					){
+				continue;
+			}
+				e = ele;
+				break;
+		}
+					
+			
+		
+		
+		
+		if(e==null){
+			return "(can't locate source position)";
+		}
+		return String.format("%s:%d", e.getFileName(), e.getLineNumber());
+	}
 
 	public static int update(int o, Label l, Taint<Label> previousTaint) {
 
@@ -148,19 +185,10 @@ public class SecurityLabelManager {
 		String a3 = l != null ? l.toString() : "(none)";
 		
 		System.out.println(String.format("[Evidently] Calling update(int): \n\tTaint: %s\n\tPrevious Taint: %s\n\tLabel Arg: %s", a1, a2, a3));
-		
-		{
-			// assignment check
-			// TODO - move to monitor
-			// TODO - add CFG branching checks.
-			CheckResult cr = SecurityLabelManager.checkAssignment(previousTaint, currentTaint);
-			
-			if(cr.ok()){
-				AspectConfig.log("[Assignment]", "FLOW OK");
-			}else{
-				AspectConfig.reportViolation("[Assignment]", cr.getMessage());
-			}
-			
+		System.out.println("\tCall Src: UPDATE @ " + getCaller());
+
+		{			
+			CheckResult cr = SecurityLabelManager._checkAssignment(previousTaint, currentTaint);
 		}
 		
 		
@@ -186,6 +214,13 @@ public class SecurityLabelManager {
 		}
 
 		return o;
+	}
+
+	public static CheckResult _checkAssignment(Taint<Label> previousTaint, Taint<Label> currentTaint) {
+		// NOTE -- this method only exists to capture
+		// assignment in the monitor aspect.
+		System.out.println("[Evidently] _checkAssignment (noop)"); // to make sure the compiler doesn't optimize this away.
+		return null;
 	}
 
 	public static long update(long o, Label l, Taint<Label> previousTaint) {
@@ -526,25 +561,40 @@ public class SecurityLabelManager {
 		return o;
 	}
 
-	private static CheckResult checkAssignment(Taint<Label> previousLHSTaint, Taint<Label> rhsTaint) {
+	public static CheckResult checkAssignment(Taint<Label> previousLHSTaint, Taint<Label> rhsTaint) {
 
-		if(rhsTaint==null && previousLHSTaint!=null){
-			return new CheckResult(previousLHSTaint);
-		}
+		ControlTaintTagStack taintStack = MultiTainter.getControlFlow();
 		
-		if(previousLHSTaint==null){
-			return CheckResult.instanceOk();
-		}
+		// nothing happened
+//		if(rhsTaint.lbl.sameFlow(previousLHSTaint.lbl)){
+//			return CheckResult.instanceOk();
+//		}
+		
 		
 		// information flow lattice.
 		CheckResult conversionResult = taintToLabel(previousLHSTaint);
 
+		// we can't convert it because an invalid flow has 
+		// happened previously (or implicitly!)
 		if (conversionResult.ok() == false) {
 			return conversionResult;
 		}
 		
-		
+		//
+		// actually check it.
+		//
 		return checkPair(conversionResult.getRes(), rhsTaint);
+	}
+	
+	private static boolean noControlFlow(ControlTaintTagStack taintStack){
+		if(taintStack==null 
+				|| taintStack.getTag()==null 
+				|| 
+		(taintStack.getTag().getLabel()==null && (taintStack.getTag().getDependencies()==null || taintStack.getTag().getDependencies().getFirst()==null))){
+			return true;
+		}
+		
+		return false;
 	}
 
 	/////

@@ -30,11 +30,11 @@ public class AspectConfig {
 	}
 
 	public static void traceReturn(JoinPoint jp) {	
-		traceReturn(jp.toLongString());
+		traceReturn(jp.toLongString() + "\n\t" + jp.getSourceLocation());
 	}
 
 	public static void traceCall(JoinPoint jp) {
-		traceCall(jp.toLongString());
+		traceCall(jp.toLongString() + "\n\t" + jp.getSourceLocation());
 	}
 	
 	//
@@ -42,7 +42,7 @@ public class AspectConfig {
 	public static void reportViolation(String jp, String message) {
 		
 		System.out.println(
-				String.format("[Evidently] [IFC VIOLATION] \n\tDesc=%s\n\tMessage=%s", jp, message));
+				String.format("[Evidently] [☠️☠️IFC VIOLATION☠☠️️] \n\tDesc=%s\n\tMessage=%s", jp, message));
 	
 		if (enforcementMode == MonitorMode.ENFORCE) {
 			// exit!
@@ -58,11 +58,15 @@ public class AspectConfig {
 	public static void traceReturn(String jp) {
 	
 		System.out.println(String.format("[Evidently] [TRACE] [RETURN] \n\tDesc=%s", jp));
-	}
+	} 
 
 	public static void traceCall(String jp) {
 	
 		System.out.println(String.format("[Evidently] [TRACE] [CALL]\n\tDesc=%s", jp));
+	}
+
+	public static void traceAssign(JoinPoint jp) {
+		System.out.println(String.format("[Evidently] [TRACE] [ASSIGN]\n\tDesc=%s", jp));		
 	}
 
 }

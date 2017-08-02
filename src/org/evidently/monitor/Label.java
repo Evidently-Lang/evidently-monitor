@@ -126,6 +126,32 @@ public class Label {
 			
 		
 	}
+	
+	public boolean sameFlow(Label that){
+		
+		if(this.sinks.size()!=that.sinks.size()){
+			return false;
+		}
+		
+		if(this.sources.size()!=that.sources.size()){
+			return false;
+		}
+		
+		for(String s : this.sinks){
+			if(that.sinks.contains(s)==false){
+				return false;
+			}
+		}
+		
+		for(String s : this.sinks){
+			if(that.sinks.contains(s)==false){
+				return false;
+			}
+		}
+		
+		return true;
+		
+	}
 
 	public List<String> getPolicyElementNames() {
 		

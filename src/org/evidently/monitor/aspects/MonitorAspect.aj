@@ -84,6 +84,50 @@ aspect MonitorAspect {
 		}
 
 	}
+	
+	private boolean emptyTaint(Taint<Label> t){
+		if(t==null){
+			return true;
+		}
+		
+		if(t.lbl==null && t.hasNoDependencies()){
+			return true;
+		}
+		
+		return false;
+	}
+
+	public void checkAssignment(JoinPoint thisJoinPoint, Taint<Label> _previousTaint, Taint<Label> _currentTaint) {
+		
+		Taint<Label> previousTaint = _previousTaint;
+		Taint<Label> currentTaint  = _currentTaint;
+		
+		if(emptyTaint(previousTaint)){
+			if(previousTaint==null){
+				previousTaint = new Taint<Label>();
+			}
+			previousTaint.lbl = SecurityLabelManager.defaultLabel();			
+		}
+		
+		if(emptyTaint(currentTaint)){
+			if(currentTaint==null){
+				currentTaint = new Taint<Label>();
+			}
+			currentTaint.lbl = SecurityLabelManager.defaultLabel();
+		}
+		
+		AspectConfig.traceAssign(thisJoinPoint); // log that we've been here.
+
+		CheckResult cr = SecurityLabelManager.checkAssignment(previousTaint, currentTaint);
+		
+		AspectConfig.log(thisJoinPoint, String.format("Assignment: %s <flow== %s", previousTaint.toString(), currentTaint.toString()));
+		
+		if (cr.ok()) {
+			AspectConfig.log(thisJoinPoint, "[Assignment] Flow OK");
+		} else {
+			AspectConfig.reportViolation("[Assignment]", cr.getMessage());
+		}
+	}
 
 	public void checkMethodReturn(JoinPoint thisJoinPoint, Object returnValue) {
 		AspectConfig.traceReturn(thisJoinPoint);
@@ -110,7 +154,12 @@ aspect MonitorAspect {
 
 	}
 
-	pointcut invoke(): call(* *(..)) 
+	pointcut assignment(Taint<Label> previousTaint, Taint<Label> currentTaint) : 
+		call(CheckResult org.evidently.monitor.SecurityLabelManager._checkAssignment(Taint<Label>, Taint<Label>)) && args (previousTaint, currentTaint);
+	
+	pointcut invoke(): call(* *(..))
+		&& !within(examples.SomeClass) 
+    
 	    && !within(org.evidently.examples.translated.PasswordChecker2) 
 	    &&!within(org.evidently.monitor.CheckResult) 
 	    &&  !within(org.evidently.monitor.Label)
@@ -144,9 +193,13 @@ aspect MonitorAspect {
 		// }
 	}
 
+	before(Taint<Label> previousTaint, Taint<Label> currentTaint) : assignment(previousTaint, currentTaint) {
+		checkAssignment(thisJoinPoint, previousTaint, currentTaint);
+	}
+	
 	private Taint<Label> returnValueToTaints(Object o) {
 		Taint<Label> t = SecurityLabelManager.getInstance().inCache(o);
-		if (t!=null) {
+		if (t != null) {
 			return t;
 		} else {
 			return new Taint<Label>(SecurityLabelManager.defaultLabel());
@@ -159,9 +212,10 @@ aspect MonitorAspect {
 		for (Object arg : args) {
 
 			Taint<Label> t = SecurityLabelManager.getInstance().inCache(arg);
-			
-			if (t!=null) {
+
+			if (t != null) {
 				labels.add(t);
+
 			} else {
 				labels.add(new Taint<Label>(SecurityLabelManager.defaultLabel()));
 			}
