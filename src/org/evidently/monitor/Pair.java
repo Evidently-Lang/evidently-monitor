@@ -9,6 +9,8 @@ public class Pair<T1, T2> {
 		this.setLeft(left);
 		this.setRight(right);
 	}
+	
+	public Pair(){	}
 
 	public T1 getLeft() {
 		return left;

@@ -20,4 +20,5 @@ import java.lang.annotation.Target;
 		TYPE_USE })
 public @interface ReleaseParam {
 	String value();
+	boolean isFlowpoint() default true;
 }
