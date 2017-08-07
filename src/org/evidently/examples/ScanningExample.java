@@ -8,21 +8,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
-import org.evidently.annotation.Policy;
 import org.evidently.annotations.ReleasePolicyFor;
-import org.evidently.monitor.Pair;
-import org.evidently.policy.PolicyElementType;
-import org.evidently.policy.numberguesser.PolicyReleaseGuessesToAdmin;
-import org.reflections.Reflections;
-import org.reflections.scanners.MethodAnnotationsScanner;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.scanners.TypeAnnotationsScanner;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
 
 public class ScanningExample extends URLClassLoader{
 
@@ -97,6 +84,7 @@ public class ScanningExample extends URLClassLoader{
         URL myUrl = new URL(url);
         URL [] urls = new URL[]{myUrl};
         
+		@SuppressWarnings("resource")
 		ScanningExample e = new ScanningExample(urls);
 		e.doIt();
 		

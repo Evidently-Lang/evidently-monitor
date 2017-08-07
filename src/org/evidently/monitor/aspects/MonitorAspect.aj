@@ -4,6 +4,7 @@ import java.lang.annotation.Annotation;
 import java.lang.annotation.AnnotationFormatError;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -15,7 +16,6 @@ import org.evidently.annotations.Source;
 import org.evidently.monitor.CheckResult;
 import org.evidently.monitor.Label;
 import org.evidently.monitor.SecurityLabelManager;
-import org.evidently.monitor.TaintStoreMergeTracker;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 import org.reflections.scanners.SubTypesScanner;
@@ -23,10 +23,9 @@ import org.reflections.scanners.TypeAnnotationsScanner;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.Configuration;;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;;
 
+@SuppressWarnings("unchecked")
 aspect MonitorAspect {
 
 	static {
@@ -75,7 +74,7 @@ aspect MonitorAspect {
 		List<Taint<Label>> actualTaints = argsToTaints(thisJoinPoint.getArgs());
 
 		// note this will update labels as needed.
-		CheckResult result = SecurityLabelManager.checkMethodCall(formalLabels, actualTaints);
+		CheckResult result = SecurityLabelManager.checkMethodCall(formalLabels, actualTaints, Arrays.asList(thisJoinPoint.getArgs()));
 
 		if (result.ok()) {
 			AspectConfig.log(thisJoinPoint, "Flow OK");
@@ -97,7 +96,7 @@ aspect MonitorAspect {
 		return false;
 	}
 
-	public void checkAssignment(JoinPoint thisJoinPoint, Taint<Label> _previousTaint, Taint<Label> _currentTaint) {
+	public void checkAssignment(JoinPoint thisJoinPoint, Taint<Label> _previousTaint, Taint<Label> _currentTaint, Object value) {
 		
 		Taint<Label> previousTaint = _previousTaint;
 		Taint<Label> currentTaint  = _currentTaint;
@@ -118,7 +117,7 @@ aspect MonitorAspect {
 		
 		AspectConfig.traceAssign(thisJoinPoint); // log that we've been here.
 
-		CheckResult cr = SecurityLabelManager.checkAssignment(previousTaint, currentTaint);
+		CheckResult cr = SecurityLabelManager.checkAssignment(previousTaint, currentTaint, value);
 		
 		AspectConfig.log(thisJoinPoint, String.format("Assignment: %s <flow== %s", previousTaint.toString(), currentTaint.toString()));
 		
@@ -141,7 +140,7 @@ aspect MonitorAspect {
 			Taint<Label> actualTaint = returnValueToTaints(returnValue);
 
 			// note this will update labels as needed.
-			CheckResult result = SecurityLabelManager.checkMethodReturn(formalLabel, actualTaint);
+			CheckResult result = SecurityLabelManager.checkMethodReturn(formalLabel, actualTaint, returnValue);
 
 			if (result.ok()) {
 				AspectConfig.log(thisJoinPoint, "Flow OK");
@@ -154,12 +153,11 @@ aspect MonitorAspect {
 
 	}
 
-	pointcut assignment(Taint<Label> previousTaint, Taint<Label> currentTaint) : 
-		call(CheckResult org.evidently.monitor.SecurityLabelManager._checkAssignment(Taint<Label>, Taint<Label>)) && args (previousTaint, currentTaint);
+	pointcut assignment(Taint<Label> previousTaint, Taint<Label> currentTaint, Object value) : 
+		call(CheckResult org.evidently.monitor.SecurityLabelManager._checkAssignment(Taint<Label>, Taint<Label>, Object)) && args (previousTaint, currentTaint, value);
 	
 	pointcut invoke(): call(* *(..))
-		&& !within(examples.SomeClass) 
-    
+		//&& !within(examples.SomeClass)     
 	    && !within(org.evidently.examples.translated.PasswordChecker2) 
 	    &&!within(org.evidently.monitor.CheckResult) 
 	    &&  !within(org.evidently.monitor.Label)
@@ -193,8 +191,8 @@ aspect MonitorAspect {
 		// }
 	}
 
-	before(Taint<Label> previousTaint, Taint<Label> currentTaint) : assignment(previousTaint, currentTaint) {
-		checkAssignment(thisJoinPoint, previousTaint, currentTaint);
+	before(Taint<Label> previousTaint, Taint<Label> currentTaint, Object value) : assignment(previousTaint, currentTaint, value) {
+		checkAssignment(thisJoinPoint, previousTaint, currentTaint, value);
 	}
 	
 	private Taint<Label> returnValueToTaints(Object o) {

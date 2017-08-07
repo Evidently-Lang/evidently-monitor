@@ -1,24 +1,22 @@
 package org.evidently.monitor;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.evidently.annotation.Policy;
+import org.evidently.annotations.Policy;
 import org.evidently.annotations.ReleaseParam;
 import org.evidently.annotations.ReleasePolicyFor;
-import org.evidently.annotations.Sink;
-import org.evidently.annotations.Source;
 import org.evidently.labels.defaults.LabelSet;
 import org.evidently.monitor.aspects.AspectConfig;
 import org.evidently.policy.PolicyElementType;
-import org.evidently.policy.numberguesser.PolicyReleaseGuessesToAdmin;
+import org.evidently.policy.Property;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 import org.reflections.scanners.SubTypesScanner;
@@ -28,26 +26,25 @@ import org.reflections.util.ConfigurationBuilder;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
 
+@SuppressWarnings("unchecked")
 public class SecurityLabelManager {
 
 	public static SecurityLabelManager instance;
 	private static HashMap<String, Pair<Object, Label>> context = new HashMap<String, Pair<Object, Label>>();
 	public LabelSet labelSet;
-	
-	
-	private SecurityLabelManager(){
+
+	private SecurityLabelManager() {
 		try {
-			labelSet = (LabelSet)Class.forName("org.evidently.labels.PolicyLabelSet").newInstance();
+			labelSet = (LabelSet) Class.forName("org.evidently.labels.PolicyLabelSet").newInstance();
 		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-			System.out.println("[Evidently] Unable to load policy labels. Using defaults...");			
+			System.out.println("[Evidently] Unable to load policy labels. Using defaults...");
 			labelSet = new LabelSet();
 		}
 	}
-	
+
 	public static SecurityLabelManager getInstance() {
 		if (instance == null) {
 			instance = new SecurityLabelManager();
@@ -61,7 +58,7 @@ public class SecurityLabelManager {
 	}
 
 	public static String[] defaultSinks() {
-		return  SecurityLabelManager.getInstance().labelSet.sinks();
+		return SecurityLabelManager.getInstance().labelSet.sinks();
 	}
 
 	public static String[] defaultSources() {
@@ -147,26 +144,20 @@ public class SecurityLabelManager {
 
 		return o;
 	}
-	
-	private static String getCaller(){
+
+	private static String getCaller() {
 		StackTraceElement e = null;
-		
-		for(StackTraceElement ele : Thread.currentThread().getStackTrace()){
-			if(ele.getClassName().startsWith("org.evidently")||
-					ele.getClassName().startsWith("edu.columbia") ||
-					ele.getClassName().startsWith("java.lang")
-					){
+
+		for (StackTraceElement ele : Thread.currentThread().getStackTrace()) {
+			if (ele.getClassName().startsWith("org.evidently") || ele.getClassName().startsWith("edu.columbia")
+					|| ele.getClassName().startsWith("java.lang")) {
 				continue;
 			}
-				e = ele;
-				break;
+			e = ele;
+			break;
 		}
-					
-			
-		
-		
-		
-		if(e==null){
+
+		if (e == null) {
 			return "(can't locate source position)";
 		}
 		return String.format("%s:%d", e.getFileName(), e.getLineNumber());
@@ -177,22 +168,21 @@ public class SecurityLabelManager {
 		if (AspectConfig.isReady() == false)
 			return o;
 
-
 		Taint<Label> currentTaint = getInstance().inCache(o);
-		
+
 		String a1 = currentTaint != null ? currentTaint.toString() : "(none)";
 		String a2 = previousTaint != null ? previousTaint.toString() : "(none)";
 		String a3 = l != null ? l.toString() : "(none)";
-		
-		System.out.println(String.format("[Evidently] Calling update(int): \n\tTaint: %s\n\tPrevious Taint: %s\n\tLabel Arg: %s", a1, a2, a3));
+
+		System.out.println(String.format(
+				"[Evidently] Calling update(int): \n\tTaint: %s\n\tPrevious Taint: %s\n\tLabel Arg: %s", a1, a2, a3));
 		System.out.println("\tCall Src: UPDATE @ " + getCaller());
 
-		{			
-			CheckResult cr = SecurityLabelManager._checkAssignment(previousTaint, currentTaint);
+		{
+			@SuppressWarnings("unused")
+			CheckResult cr = SecurityLabelManager._checkAssignment(previousTaint, currentTaint, o);
 		}
-		
-		
-		
+
 		if (currentTaint != null) {
 
 			System.out.println("[Evidently] IN cache: " + currentTaint);
@@ -216,10 +206,16 @@ public class SecurityLabelManager {
 		return o;
 	}
 
-	public static CheckResult _checkAssignment(Taint<Label> previousTaint, Taint<Label> currentTaint) {
+	public static CheckResult _checkAssignment(Taint<Label> previousTaint, Taint<Label> currentTaint, Object value) {
 		// NOTE -- this method only exists to capture
 		// assignment in the monitor aspect.
-		System.out.println("[Evidently] _checkAssignment (noop)"); // to make sure the compiler doesn't optimize this away.
+		System.out.println("[Evidently] _checkAssignment (noop)"); // to make
+																	// sure the
+																	// compiler
+																	// doesn't
+																	// optimize
+																	// this
+																	// away.
 		return null;
 	}
 
@@ -561,44 +557,44 @@ public class SecurityLabelManager {
 		return o;
 	}
 
-	public static CheckResult checkAssignment(Taint<Label> previousLHSTaint, Taint<Label> rhsTaint) {
+	public static CheckResult checkAssignment(Taint<Label> previousLHSTaint, Taint<Label> rhsTaint, Object value) {
 
+		@SuppressWarnings("unused")
 		ControlTaintTagStack taintStack = MultiTainter.getControlFlow();
-		
-		// nothing happened
-//		if(rhsTaint.lbl.sameFlow(previousLHSTaint.lbl)){
-//			return CheckResult.instanceOk();
-//		}
-		
-		
-		// information flow lattice.
-		CheckResult conversionResult = taintToLabel(previousLHSTaint);
 
-		// we can't convert it because an invalid flow has 
+		// nothing happened
+		// if(rhsTaint.lbl.sameFlow(previousLHSTaint.lbl)){
+		// return CheckResult.instanceOk();
+		// }
+
+		// information flow lattice.
+		CheckResult conversionResult = taintToLabel(previousLHSTaint, value);
+
+		// we can't convert it because an invalid flow has
 		// happened previously (or implicitly!)
 		if (conversionResult.ok() == false) {
 			return conversionResult;
 		}
-		
+
 		//
 		// actually check it.
 		//
-		return checkPair(conversionResult.getRes(), rhsTaint);
+		return checkPair(conversionResult.getRes(), rhsTaint, value);
 	}
-	
-	private static boolean noControlFlow(ControlTaintTagStack taintStack){
-		if(taintStack==null 
-				|| taintStack.getTag()==null 
-				|| 
-		(taintStack.getTag().getLabel()==null && (taintStack.getTag().getDependencies()==null || taintStack.getTag().getDependencies().getFirst()==null))){
+
+	@SuppressWarnings("unused")
+	private static boolean noControlFlow(ControlTaintTagStack taintStack) {
+		if (taintStack == null || taintStack.getTag() == null
+				|| (taintStack.getTag().getLabel() == null && (taintStack.getTag().getDependencies() == null
+						|| taintStack.getTag().getDependencies().getFirst() == null))) {
 			return true;
 		}
-		
+
 		return false;
 	}
 
 	/////
-	private static CheckResult taintToLabel(Taint<Label> actual) {
+	private static CheckResult taintToLabel(Taint<Label> actual, Object value) {
 
 		// our check takes place in two forms
 
@@ -627,7 +623,7 @@ public class SecurityLabelManager {
 					// merge this two labels.
 					Label.mergeSinks(effectiveLabel, l);
 					Label.mergeSource(effectiveLabel, l);
-				} else if (policyJustifiesUpgrade(effectiveLabel, l)) {
+				} else if (policyJustifiesUpgrade(effectiveLabel, l, value)) {
 
 					Label.mergeSinks(effectiveLabel, l);
 					Label.mergeSource(effectiveLabel, l);
@@ -642,13 +638,13 @@ public class SecurityLabelManager {
 		return CheckResult.instanceOk(effectiveLabel);
 	}
 
-	private static CheckResult checkPair(Label formal, Taint<Label> actual) {
+	private static CheckResult checkPair(Label formal, Taint<Label> actual, Object value) {
 
 		// our check takes place in two forms
 
 		// first, we check that everything in DEPS is a valid step in a
 		// information flow lattice.
-		CheckResult conversionResult = taintToLabel(actual);
+		CheckResult conversionResult = taintToLabel(actual, value);
 
 		if (conversionResult.ok() == false) {
 			return conversionResult;
@@ -670,7 +666,7 @@ public class SecurityLabelManager {
 			Label.mergeSinks(actual.lbl, formal);
 			Label.mergeSource(actual.lbl, formal);
 
-		} else if (policyJustifiesUpgrade(actual.lbl, formal)) {
+		} else if (policyJustifiesUpgrade(actual.lbl, formal, value)) {
 			// upgrading
 			// merge
 			Label.mergeSinks(actual.lbl, formal);
@@ -687,7 +683,7 @@ public class SecurityLabelManager {
 		return CheckResult.instanceOk();
 	}
 
-	private static boolean policyJustifiesUpgrade(Label lbl, Label formal) {
+	private static boolean policyJustifiesUpgrade(Label lbl, Label formal, Object valueBeingUpgraded) {
 
 		// find a policy for the given variable that justifies
 		// this release.
@@ -695,10 +691,12 @@ public class SecurityLabelManager {
 
 		List<Pair<PolicyElementType, String>> elements = lbl.getPolicyElementTypes();
 
+		// If a value wasn't influenced by AT LEAST ONE flowpoints it is
+		// impossible there is a release
+		// policy for it so we don't bother trying.
 		if (elements.size() == 0) {
 			System.out.println(
-					String.format("[Evidently] [Policy] Label does not have any avilable tagged policy elements..."));
-
+					String.format("[Evidently] [Policy] Label does not have any available tagged policy elements..."));
 			return false; // nothing to justify!
 		}
 
@@ -715,84 +713,181 @@ public class SecurityLabelManager {
 		System.out.println(
 				String.format("[Evidently] [Policy] Looking for Policies that can declassify any of the following: "));
 
+		Set<String> influences = new HashSet<String>();
+
 		for (Pair<PolicyElementType, String> element : elements) {
 			System.out.println(String.format("\t[%s], Type: %s", element.getRight(), element.getLeft()));
+			if (element.getLeft() == PolicyElementType.FLOWPOINT) {
+				influences.add(element.getRight());
+			}
 		}
+
+		// We can examine the Policy Element Types (PETs) and make the following
+		// conclusions:
+		//
+		// 1) If there are more than one DISTINCT PETs, we MUST look for a
+		// property to declassify
+		// 2) If there is exactly one DISTINCT PET, it could be either a
+		// property OR a flowpoint.
+		// In this case, we first try all the obvious flowpoint policies, first.
+		//
+		// To try and determine the properties, we find things that match in
+		// value and in influences
+		// THEN we find a release policy for it and see if we can make it pass.
+
+		// it could be a flowpoint OR a property
+		if (influences.size() == 1) {
+			System.out.println(String.format("[Evidently] [Policy] Release can be either a property or flowpoint..."));
+
+			return canReleaseFlowpointOrProperty(lbl, formal, elements, valueBeingUpgraded);
+		} else {
+			System.out.println(String.format("[Evidently] [Policy] Release can be a property..."));
+
+			return canReleaseProperty(lbl, formal, elements, valueBeingUpgraded);
+		}
+
+	}
+
+	private static boolean canReleaseFlowpointOrProperty(Label lbl, Label formal,
+			List<Pair<PolicyElementType, String>> elements, Object valueBeingUpgraded) {
+
+		String flowpoint = elements.get(0).getRight();
+
+		Reflections reflections = new Reflections(
+				new ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("org.evidently")).setScanners(
+						new SubTypesScanner(), new TypeAnnotationsScanner(), new MethodAnnotationsScanner()));
 
 		Set<Method> methods = reflections.getMethodsAnnotatedWith(ReleasePolicyFor.class);
 
-		// see if any of these are true!
-		for (Pair<PolicyElementType, String> element : elements) {
-			for (Method m : methods) {
+		//
+		// Simple case is that it's just a flowpoint release, so try that first.
+		//
+		for (Method m : methods) {
 
-				if (fromJavaName(m.getName()).endsWith(element.getRight())) {
-					// TODO - first check if the FLOW is ok.
-					System.out.println(String.format(
-							"[Evidently] [Policy] Checking release policy for [%s], Type: %s, Translated Policy: [%s]",
-							element.getRight(), element.getLeft(), m.getName()));
+			if (fromJavaName(m.getName()).endsWith(flowpoint)) {
+				// TODO - first check if the FLOW is ok.
+				System.out.println(
+						String.format("[Evidently] [Policy] Checking release policy for [%s], Translated Policy: [%s]",
+								flowpoint, m.getName()));
 
-					// build the arguments
-					Object[] args = buildArgumentsFromContext(m);
-					try {
-						Object target = m.getDeclaringClass().newInstance();
+				// build the arguments
+				Object[] args = buildArgumentsFromContext(m);
+				try {
+					Object target = m.getDeclaringClass().newInstance();
 
-						boolean isOK = (boolean) m.invoke(target, args);
+					boolean isOK = (boolean) m.invoke(target, args);
 
-						System.out.println(String.format("[Evidently] [Policy] OK?:  %s", isOK));
+					System.out.println(String.format("[Evidently] [Policy] OK?:  %s", isOK));
 
-						if (isOK) {
-							return isOK; // first rule to match wins
-						}
-
-					} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
-							| InstantiationException e) {
-						System.err.println(
-								"[Evidently] [Policy] Error invoking declassification function " + m.getName());
-						e.printStackTrace();
+					if (isOK) {
+						return isOK; // first rule to match wins
 					}
 
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
+						| InstantiationException e) {
+					System.err.println("[Evidently] [Policy] Error invoking declassification function " + m.getName());
+					e.printStackTrace();
 				}
+
 			}
 		}
+		//
+		// Also, if could be a property that DEPENDS on this flowpoint.
+		//
+		return canReleaseProperty(lbl, formal, elements, valueBeingUpgraded);
+	}
+
+	private static boolean canReleaseProperty(Label lbl, Label formal, List<Pair<PolicyElementType, String>> elements, Object valueBeingUpgraded) {
+
+		Set<String> taints = elements.stream().map(p -> p.getRight()).collect(Collectors.toSet());
+
+		Reflections reflections = new Reflections(
+				new ConfigurationBuilder().setUrls(ClasspathHelper.forPackage("org.evidently")).setScanners(
+						new SubTypesScanner(), new TypeAnnotationsScanner(), new MethodAnnotationsScanner()));
+
+		// get all the properties
+		Set<Class<? extends Property>> properties = reflections.getSubTypesOf(Property.class);
+		Set<String> matchingProperties = new HashSet<String>();
+
+		// build up a set of properties that could be the current thing
+		for (Class<? extends Property> c : properties) {
+			String propertyName = null;
+			try {
+				Property p = c.newInstance();
+
+				Method valueFunction = Arrays.stream(c.getDeclaredMethods()).filter(m -> m.getName().equals("getValue"))
+						.findFirst().get();
+
+				propertyName = p.getName();
+
+				Object[] args = buildArgumentsFromContext(valueFunction);
+
+				try {
+					Pair<Taint<Label>, Object> result = (Pair<Taint<Label>, Object>) valueFunction.invoke(p, args);
+
+					// inspect the taints.
+					// we require that they have the same number and they are
+					// equal
+					if (result.getLeft() != null) {
+
+						// TODO look at the value also
+						
+						Set<String> propertyTaints = Label.getDistinctFlowpointInfluences(result.getLeft());
+						System.out.println("[Evidently] Checking to see if this value was tained by the same flowpoints: " + String.join(",", taints));
+						System.out.println("[Evidently] Actual Taints: " + String.join(",", propertyTaints));
+						if(propertyTaints.equals(taints)){							
+							matchingProperties.add(propertyName);							
+						}
+						
+					}
+
+				} catch (UnsatSpecException e) {
+					System.out.println("[Evidently] [PropCheck] Specification is Unsat for property: " + propertyName);
+				}
+
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException e) {
+				e.printStackTrace();
+			}
+
+		}
+
 		return false;
 	}
 
-	
-	public static void updateContexts(Taint<Label> t, Object o, HashMap<String, Pair<Object, Label>> context){
-		
-		if(t.getLabel()!=null){
+	public static void updateContexts(Taint<Label> t, Object o, HashMap<String, Pair<Object, Label>> context) {
+
+		if (t.getLabel() != null) {
 			t.getLabel().updateContexts(o, context);
 		}
-		
-		if(t.getDependencies()!=null && t.getDependencies().getFirst()!=null){
+
+		if (t.getDependencies() != null && t.getDependencies().getFirst() != null) {
 			for (Node<Label> n = t.getDependencies().getFirst(); n.next != null; n = n.next) {
-				if(n.entry!=null){
+				if (n.entry != null) {
 					n.entry.updateContexts(o, context);
 				}
 			}
 		}
-		
-		
-		
+
 	}
-	
-	public static boolean isSpecial(Taint<Label> t){
-		if(t.getLabel()!=null && t.getLabel().isSpecial()){
+
+	public static boolean isSpecial(Taint<Label> t) {
+		if (t.getLabel() != null && t.getLabel().isSpecial()) {
 			return true;
 		}
-		
-		if(t.getDependencies()!=null && t.getDependencies().getFirst()!=null){
+
+		if (t.getDependencies() != null && t.getDependencies().getFirst() != null) {
 			for (Node<Label> n = t.getDependencies().getFirst(); n.next != null; n = n.next) {
-				if(n.entry!=null && n.entry.isSpecial()){
+				if (n.entry != null && n.entry.isSpecial()) {
 					return true;
 				}
 			}
 		}
-		
+
 		return false;
-		
+
 	}
-	
+
 	public static String toJavaName(String s) {
 		return s.replaceAll("\\.", "___");
 	}
@@ -840,7 +935,7 @@ public class SecurityLabelManager {
 		// return args;
 	}
 
-	public static CheckResult checkMethodCall(List<Label> formalLabels, List<Taint<Label>> actualTaints) {
+	public static CheckResult checkMethodCall(List<Label> formalLabels, List<Taint<Label>> actualTaints, List<Object> actualValues) {
 
 		// check each pair.
 		if (formalLabels.size() != actualTaints.size()) {
@@ -849,7 +944,8 @@ public class SecurityLabelManager {
 		}
 
 		for (int i = 0; i < formalLabels.size(); i++) {
-			CheckResult r = checkPair(formalLabels.get(i), actualTaints.get(i));
+			Object actualValue = actualValues.get(i);
+			CheckResult r = checkPair(formalLabels.get(i), actualTaints.get(i), actualValue);
 
 			if (!r.ok()) {
 				return r;
@@ -859,9 +955,9 @@ public class SecurityLabelManager {
 		return CheckResult.instanceOk();
 	}
 
-	public static CheckResult checkMethodReturn(Label formalLabel, Taint<Label> actualTaint) {
+	public static CheckResult checkMethodReturn(Label formalLabel, Taint<Label> actualTaint, Object value) {
 
-		CheckResult r = checkPair(formalLabel, actualTaint);
+		CheckResult r = checkPair(formalLabel, actualTaint, value);
 
 		if (!r.ok()) {
 			return r;

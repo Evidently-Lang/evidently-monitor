@@ -4,14 +4,9 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Set;
 
-import org.evidently.annotation.Policy;
+import org.evidently.annotations.Policy;
 import org.evidently.annotations.ReleasePolicyFor;
-import org.evidently.annotations.Sink;
 import org.evidently.annotations.Source;
-import org.evidently.monitor.Label;
-import org.evidently.monitor.Pair;
-import org.evidently.monitor.SecurityLabelManager;
-import org.evidently.policy.PolicyElementType;
 import org.evidently.policy.numberguesser.PolicyReleaseGuessesToAdmin;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;

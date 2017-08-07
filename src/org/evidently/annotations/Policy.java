@@ -1,4 +1,4 @@
-package org.evidently.annotation;
+package org.evidently.annotations;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
 import static java.lang.annotation.ElementType.CONSTRUCTOR;

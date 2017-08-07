@@ -1,13 +1,9 @@
 package org.evidently.examples.translated;
 
-import org.evidently.annotations.Sink;
-import org.evidently.annotations.Source;
-import org.evidently.monitor.Label;
-import org.evidently.monitor.SecurityLabelManager;
-
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
+@SuppressWarnings({"unchecked", "unused"})
 public class PasswordChecker2 {
 
 

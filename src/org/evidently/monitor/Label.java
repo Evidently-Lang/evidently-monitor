@@ -10,6 +10,9 @@ import java.util.Set;
 
 import org.evidently.policy.PolicyElementType;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
+
 public class Label {
 	
 	private Set<String> sinks;
@@ -151,6 +154,25 @@ public class Label {
 		
 		return true;
 		
+	}
+	
+	public static Set<String> getDistinctFlowpointInfluences(Taint<Label> l){
+		Set<String> result = new HashSet<String>();
+		
+		if(l.getLabel()!=null){
+			result.addAll(l.getLabel().getPolicyElementNames());
+		}
+		
+		if(l.getDependencies()!=null && l.getDependencies().getFirst()!=null){
+			for (Node<Label> n = l.getDependencies().getFirst(); n.next != null; n = n.next) {
+				if (n.entry != null) {
+					result.addAll(n.entry.getPolicyElementNames());
+				}
+			}
+		}
+		
+		
+		return result;
 	}
 
 	public List<String> getPolicyElementNames() {

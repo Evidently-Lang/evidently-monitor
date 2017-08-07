@@ -1,7 +1,5 @@
 package org.evidently.policy;
 
-import java.util.Stack;
-
 public class Release {
 
 	// returns a boolean true if the thing passed to it matches the "what"	

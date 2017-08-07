@@ -1,7 +1,6 @@
 package org.evidently.monitor.aspects;
 
 import org.aspectj.lang.JoinPoint;
-import org.evidently.monitor.aspects.AspectConfig.MonitorMode;
 
 public class AspectConfig {
 

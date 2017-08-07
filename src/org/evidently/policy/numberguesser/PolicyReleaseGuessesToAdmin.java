@@ -1,6 +1,6 @@
 package org.evidently.policy.numberguesser;
 
-import org.evidently.annotation.Policy;
+import org.evidently.annotations.Policy;
 import org.evidently.annotations.ReleaseParam;
 import org.evidently.annotations.ReleasePolicyFor;
 

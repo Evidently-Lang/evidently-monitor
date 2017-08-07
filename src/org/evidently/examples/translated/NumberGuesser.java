@@ -1,26 +1,10 @@
 package org.evidently.examples.translated;
 
-import org.evidently.policy.PolicyElementType;
-import org.reflections.Reflections;
-import org.reflections.scanners.MethodAnnotationsScanner;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.scanners.TypeAnnotationsScanner;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
-
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
-import java.util.Set;
-
-import org.evidently.annotation.Policy;
-import org.evidently.annotations.ReleasePolicyFor;
 import org.evidently.annotations.Sink;
 import org.evidently.annotations.Source;
 import org.evidently.monitor.Label;
 import org.evidently.monitor.SecurityLabelManager;
-
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import org.evidently.policy.PolicyElementType;
 
 public class NumberGuesser {
 
