@@ -42,7 +42,7 @@ aspect MonitorAspect {
 
 			for (int i = 0; i < as.length; i++) {
 				for (int j = 0; j < as[i].length; j++) {
-					System.out.println(as[i][j]);
+					System.out.println("[Evidently] " + as[i][j]);
 				}
 			}
 		}

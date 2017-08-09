@@ -40,6 +40,7 @@ public class SecurityLabelManager {
 		try {
 			labelSet = (LabelSet) Class.forName("org.evidently.labels.PolicyLabelSet").newInstance();
 		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+			//e.printStackTrace();
 			System.out.println("[Evidently] Unable to load policy labels. Using defaults...");
 			labelSet = new LabelSet();
 		}
@@ -62,7 +63,7 @@ public class SecurityLabelManager {
 	}
 
 	public static String[] defaultSources() {
-		return new String[] {};
+		return new String[]{};
 	}
 
 	public Taint inCache(Object o) {
@@ -836,7 +837,14 @@ public class SecurityLabelManager {
 						System.out.println("[Evidently] Checking to see if this value was tained by the same flowpoints: " + String.join(",", taints));
 						System.out.println("[Evidently] Actual Taints: " + String.join(",", propertyTaints));
 						if(propertyTaints.equals(taints)){							
-							matchingProperties.add(propertyName);							
+							System.out.println("[Evidently] YES. Checking Equality...");
+							
+							if(valueBeingUpgraded.equals(result.getRight()) || (valueBeingUpgraded==result.getRight() && result.getRight()==null)){
+								System.out.println("[Evidently] YES.");								
+								matchingProperties.add(propertyName);
+							}else{
+								System.out.println("[Evidently] NO");								
+							}
 						}
 						
 					}

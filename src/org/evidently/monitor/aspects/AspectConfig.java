@@ -29,11 +29,11 @@ public class AspectConfig {
 	}
 
 	public static void traceReturn(JoinPoint jp) {	
-		traceReturn(jp.toLongString() + "\n\t" + jp.getSourceLocation());
+		traceReturn(jp.toLongString() + "\n\tLoc=" + jp.getSourceLocation());
 	}
 
 	public static void traceCall(JoinPoint jp) {
-		traceCall(jp.toLongString() + "\n\t" + jp.getSourceLocation());
+		traceCall(jp.toLongString() + "\n\tLoc=" + jp.getSourceLocation());
 	}
 	
 	//
