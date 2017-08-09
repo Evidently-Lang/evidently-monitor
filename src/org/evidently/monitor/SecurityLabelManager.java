@@ -569,6 +569,7 @@ public class SecurityLabelManager {
 		// }
 
 		// information flow lattice.
+		System.out.println("[Evidently] [Assignment] Convert taint to label...");
 		CheckResult conversionResult = taintToLabel(previousLHSTaint, value);
 
 		// we can't convert it because an invalid flow has
@@ -580,7 +581,14 @@ public class SecurityLabelManager {
 		//
 		// actually check it.
 		//
-		return checkPair(conversionResult.getRes(), rhsTaint, value);
+		//return checkPair(conversionResult.getRes(), rhsTaint, value);
+		
+		CheckResult conversionResultRHS = taintToLabel(rhsTaint, value);
+
+		System.out.println("[Evidently] [Assignment] Checking pair...");
+		
+		return checkPair(conversionResultRHS.getRes(), previousLHSTaint, value);
+		
 	}
 
 	@SuppressWarnings("unused")
